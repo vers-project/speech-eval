@@ -1,0 +1,113 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "speech-eval"
+version = "0.1.0"
+requires-python = "==3.12.*"
+# Deliberately light: the core is a runner over a manifest.  Every model-backed
+# metric family declares its own optional extra below, so a machine that only
+# needs spectral tilt never installs an ASR stack.
+dependencies = [
+    "pandas",
+    "numpy",
+    "audio-utils",
+    "experiment-launcher",
+]
+
+[dependency-groups]
+dev = ["pytest"]
+
+[project.optional-dependencies]
+cpu = [
+  "torch",
+  "torchaudio",
+  "torchcodec",
+  "matplotlib",
+]
+cu128 = [
+  "torch",
+  "torchaudio",
+  "torchcodec",
+  "matplotlib",
+]
+# One extra per metric family, each populated when that family lands.  Keeping
+# them separate is what lets `--extra phonetics` stay installable on a cluster
+# node with no network access to a model hub.
+# ASR + WER distortion.  transformers carries both backends; jiwer supplies the
+# word-level edit distance that compare.py turns into pooled WER.  Note that the
+# 'whisper_en' normaliser in compare.py also needs transformers, so a machine
+# that only reads results still installs this extra to score them.
+asr = [
+  "transformers>=4.40",
+  "jiwer",
+]
+mos = []        # automatic MOS
+# Speaker embedding / verification.  Two deliberately independent embedders:
+# speechbrain carries ECAPA-TDNN (log-mel + TDNN), transformers carries WavLM
+# with an x-vector head (SSL transformer).  transformers is listed again here
+# rather than borrowed from the `asr` extra, because extras are per-family and
+# `--extra speaker` alone has to install a working stack.
+speaker = [
+  "speechbrain>=1.0",
+  "transformers>=4.40",
+]
+# F0, formants, spectral tilt, voice quality.  openSMILE is the reference
+# implementation of the eGeMAPS parameter set (Eyben et al. 2016) and is pinned:
+# eGeMAPSv01a/v01b/v02 differ, so the version is part of the measurement.
+phonetics = [
+  "opensmile>=2.5",
+  # Praat, through its Python binding: the reference autocorrelation pitch
+  # tracker, and later the source of CPPS and formant analysis.
+  "praat-parselmouth",
+  # Neural pitch tracker, the third F0 instrument alongside Praat and openSMILE.
+  # SwiftF0 rather than PENN, which scores 0.6 points higher on PTDB-TUG but
+  # imports `torbi`, whose prebuilt Viterbi binaries lag the current torch by
+  # two minor versions and hard-fail at import.  SwiftF0 needs only onnxruntime
+  # and ships its 400 kB model inside the wheel, so it is offline-safe on a
+  # cluster node and is the one neural tracker this suite can actually test.
+  "swift-f0",
+]
+
+[tool.uv]
+conflicts = [
+  [
+    { extra = "cpu" },
+    { extra = "cu128" },
+  ],
+]
+
+[tool.uv.sources]
+# By providing multiple options for the same package, uv will select
+# the one that matches the index provided via the CLI.
+torch = [
+  { index = "pytorch-cu128", extra = "cu128"},
+  { index = "pytorch-cpu", extra = "cpu"},
+]
+torchaudio = [
+  { index = "pytorch-cu128", extra = "cu128"},
+  { index = "pytorch-cpu", extra = "cpu"},
+]
+# Always pull torchcodec from CPU index regardless of the global choice
+torchcodec = { index = "pytorch-cpu" }
+
+audio-utils = { git = "https://github.com/vers-project/audio_utils", tag = "v0.1.0" }
+experiment-launcher = { git = "https://github.com/vers-project/slurm_launcher", tag = "v0.1.0" }
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.setuptools.packages.find]
+where   = ["."]
+include = ["speech_eval*"]
+
+[tool.ty.environment]
+root = ["."]

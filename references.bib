@@ -1,0 +1,322 @@
+% Primary sources for the measures implemented in this repo.
+%
+% Every entry here has been checked against the source document, not against a
+% secondary description of it.  Where an implementation and a published
+% description disagree, the disagreement is recorded in the metric's module
+% docstring — see speech_eval/metrics/egemaps.py for the alpha ratio.
+
+% ---------------------------------------------------------------------------
+% Spectral tilt / spectral balance
+% ---------------------------------------------------------------------------
+
+% THE original definition of the alpha ratio.  Defines it as high over low,
+% which is what openSMILE computes and what the GeMAPS paper's prose reverses.
+@article{frokjaer1975registration,
+  title={Registration of voice quality},
+  author={Fr{\o}kjaer-Jensen, B{\o}rge and Prytz, Svend},
+  journal={Annual Report of the Institute of Phonetics University of Copenhagen},
+  volume={9},
+  pages={237--251},
+  year={1975}
+}
+
+% Origin of the Hammarberg index: strongest energy peak in 0-2 kHz relative to
+% the strongest peak in 2-5 kHz.
+@article{hammarberg1980perceptual,
+  title={Perceptual and acoustic correlates of abnormal voice qualities},
+  author={Hammarberg, Britta and Fritzell, Bj{\"o}rn and Gauffin, Jan and
+          Sundberg, Johan and Wedin, Lage},
+  journal={Acta Oto-Laryngologica},
+  volume={90},
+  number={1-6},
+  pages={441--451},
+  year={1980}
+}
+
+% The alpha measure against vocal loudness: LTAS slope flattens as loudness
+% rises.  Computes alpha from a long-term average spectrum rather than as a mean
+% over per-frame values -- the aggregation the vocal-effort literature uses.
+@article{sundberg2006effects,
+  title={Effects of vocal loudness variation on spectrum balance as reflected by
+         the alpha measure of long-term-average spectra of speech},
+  author={Sundberg, Johan and Nordenberg, Maria},
+  journal={The Journal of the Acoustical Society of America},
+  volume={120},
+  number={1},
+  pages={453--457},
+  year={2006}
+}
+
+% ---------------------------------------------------------------------------
+% Parameter set and toolkit
+% ---------------------------------------------------------------------------
+
+% Defines eGeMAPS.  Section 6.1 gives the framing actually used: 20 ms Hamming
+% windows 10 ms apart, zero-padded to the next power of two, for the spectral
+% descriptors; 60 ms windows for F0, harmonic differences, HNR, jitter and
+% shimmer; every LLD smoothed by a symmetric 3-frame moving average.
+@article{eyben2016geneva,
+  title={The {G}eneva Minimalistic Acoustic Parameter Set ({GeMAPS}) for Voice
+         Research and Affective Computing},
+  author={Eyben, Florian and Scherer, Klaus R. and Schuller, Bj{\"o}rn W. and
+          Sundberg, Johan and Andr{\'e}, Elisabeth and Busso, Carlos and
+          Devillers, Laurence Y. and Epps, Julien and Laukka, Petri and
+          Narayanan, Shrikanth S. and Truong, Khiet P.},
+  journal={IEEE Transactions on Affective Computing},
+  volume={7},
+  number={2},
+  pages={190--202},
+  year={2016}
+}
+
+@inproceedings{eyben2013recent,
+  title={Recent developments in {openSMILE}, the {M}unich open-source multimedia
+         feature extractor},
+  author={Eyben, Florian and Weninger, Felix and Gross, Florian and
+          Schuller, Bj{\"o}rn},
+  booktitle={Proceedings of the 21st ACM International Conference on Multimedia},
+  pages={835--838},
+  year={2013}
+}
+
+% ---------------------------------------------------------------------------
+% Pitch tracking
+% ---------------------------------------------------------------------------
+
+% The method behind Praat's "To Pitch (ac)", and so behind the f0_praat metric:
+% autocorrelation of the windowed signal divided by the autocorrelation of the
+% window, with a Viterbi path search over candidates weighted by the octave,
+% octave-jump and voiced/unvoiced costs the metric exposes.
+@article{boersma1993accurate,
+  title={Accurate short-term analysis of the fundamental frequency and the
+         harmonics-to-noise ratio of a sampled sound},
+  author={Boersma, Paul},
+  journal={Proceedings of the Institute of Phonetic Sciences,
+           University of Amsterdam},
+  volume={17},
+  pages={97--110},
+  year={1993}
+}
+
+% The toolkit behind f0_praat and formants_praat, reached through parselmouth.
+% Cited as software rather than as a method paper because what the formant metric
+% depends on is Praat's *implementation* of Burg LPC ("Sound: To Formant (burg)")
+% and of the Viterbi formant tracker ("Formant: Track"), including the default
+% costs and the reference frequencies the metric's scaling rule reproduces.
+% Pin the version actually used: these are settings, and a settings change is a
+% measurement change.
+@software{boersma2024praat,
+  title={{Praat}: doing phonetics by computer},
+  author={Boersma, Paul and Weenink, David},
+  note={Reached through the parselmouth binding; record the version used},
+  url={https://www.praat.org/},
+  year={2024}
+}
+
+% Subharmonic summation: the F0 of the eGeMAPS parameter set, hence of the
+% f0_opensmile metric.  The spectrum is octave shift-added 15 times with
+% compression 0.85; GeMAPS sec. 6.1 pins the rest (60 ms windows, 55-1000 Hz,
+% voicing threshold 0.7).
+@article{hermes1988measurement,
+  title={Measurement of pitch by subharmonic summation},
+  author={Hermes, Dik J.},
+  journal={The Journal of the Acoustical Society of America},
+  volume={83},
+  number={1},
+  pages={257--264},
+  year={1988}
+}
+
+% The neural tracker behind f0_swiftf0.  No paper; this is the author's own
+% citation block, taken verbatim from the package metadata.
+@software{nieradzik2025swiftf0,
+  title={{SwiftF0}: Fast and Accurate Fundamental Frequency Detection},
+  author={Nieradzik, Lars},
+  url={https://github.com/lars76/swift-f0},
+  year={2025}
+}
+
+% The corpus every published pitch-tracker ranking cited in f0.py is measured
+% on: read speech with simultaneous laryngograph, so the reference F0 is
+% physiological rather than another algorithm's opinion.  Note the regime it
+% does NOT cover -- clean read speech only, no high vocal effort, no
+% codec-decoded audio.
+@inproceedings{pirker2011pitch,
+  title={A pitch tracking corpus with evaluation on multipitch tracking scenario},
+  author={Pirker, Gregor and Wohlmayr, Michael and Petrik, Stefan and
+          Pernkopf, Franz},
+  booktitle={Proceedings of Interspeech},
+  pages={1509--1512},
+  year={2011}
+}
+
+% ---------------------------------------------------------------------------
+% Speech recognition / WER distortion
+% ---------------------------------------------------------------------------
+
+% The autoregressive backend.  Appendix C defines the English text normaliser
+% that compare.py applies to both sides of every WER, and every published
+% Whisper WER is measured through it.  Note also the log-mel scaling in
+% whisper/audio.py: the max-8 floor is relative, the (x+4)/4 affine is absolute,
+% so the model is NOT scale-invariant -- see speech_eval/metrics/asr.py.
+@inproceedings{radford2023robust,
+  title={Robust Speech Recognition via Large-Scale Weak Supervision},
+  author={Radford, Alec and Kim, Jong Wook and Xu, Tao and Brockman, Greg and
+          McLeavey, Christine and Sutskever, Ilya},
+  booktitle={Proceedings of the 40th International Conference on Machine
+             Learning (ICML)},
+  pages={28492--28518},
+  year={2023}
+}
+
+% The CTC backend: self-supervised pretraining plus a CTC head.  Decoded greedily
+% here, with no language model, which is the whole point of pairing it with
+% Whisper -- it cannot repair a phoneme the converter destroyed.
+@inproceedings{baevski2020wav2vec,
+  title={wav2vec 2.0: A Framework for Self-Supervised Learning of Speech
+         Representations},
+  author={Baevski, Alexei and Zhou, Yuhao and Mohamed, Abdelrahman and
+          Auli, Michael},
+  booktitle={Advances in Neural Information Processing Systems (NeurIPS)},
+  volume={33},
+  pages={12449--12460},
+  year={2020}
+}
+
+% The "lv60" in facebook/wav2vec2-large-960h-lv60-self: 60k hours of unlabelled
+% read audiobooks, the pretraining corpus.
+@inproceedings{kahn2020librilight,
+  title={Libri-Light: A Benchmark for {ASR} with Limited or No Supervision},
+  author={Kahn, Jacob and Rivi{\`e}re, Morgane and Zheng, Weiyi and
+          Kharitonov, Evgeny and Xu, Qiantong and Mazar{\'e}, Pierre-Emmanuel and
+          Karadayi, Julien and Liptchinsky, Vitaliy and Collobert, Ronan and
+          Fuegen, Christian and Likhomanenko, Tatiana and Synnaeve, Gabriel and
+          Joulin, Armand and Mohamed, Abdelrahman and Dupoux, Emmanuel},
+  booktitle={IEEE International Conference on Acoustics, Speech and Signal
+             Processing (ICASSP)},
+  pages={7669--7673},
+  year={2020}
+}
+
+% The "-self" suffix: a second round of training on pseudo-labels.
+@inproceedings{xu2021self,
+  title={Self-Training and Pre-Training are Complementary for Speech Recognition},
+  author={Xu, Qiantong and Baevski, Alexei and Likhomanenko, Tatiana and
+          Tomasello, Paden and Conneau, Alexis and Collobert, Ronan and
+          Synnaeve, Gabriel and Auli, Michael},
+  booktitle={IEEE International Conference on Acoustics, Speech and Signal
+             Processing (ICASSP)},
+  pages={3030--3034},
+  year={2021}
+}
+
+% ---------------------------------------------------------------------------
+% Speaker identity
+% ---------------------------------------------------------------------------
+
+% speaker_ecapa.  The log-mel branch: a time-delay CNN with squeeze-excitation,
+% multi-scale feature aggregation and attentive statistics pooling.  The
+% speechbrain checkpoint is this architecture trained on VoxCeleb1+2.
+@inproceedings{desplanques2020ecapa,
+  title={{ECAPA-TDNN}: Emphasized Channel Attention, Propagation and Aggregation
+         in {TDNN} Based Speaker Verification},
+  author={Desplanques, Brecht and Thienpondt, Jenthe and Demuynck, Kris},
+  booktitle={Interspeech},
+  pages={3830--3834},
+  year={2020}
+}
+
+% speaker_wavlm.  The self-supervised branch: a transformer over the raw
+% waveform, pretrained with masked prediction and utterance mixing.  Paired with
+% ECAPA precisely because it shares neither frontend nor training set.
+@article{chen2022wavlm,
+  title={{WavLM}: Large-Scale Self-Supervised Pre-Training for Full Stack Speech
+         Processing},
+  author={Chen, Sanyuan and Wang, Chengyi and Chen, Zhengyang and Wu, Yu and
+          Liu, Shujie and Chen, Zhuo and Li, Jinyu and Kanda, Naoyuki and
+          Yoshioka, Takuya and Xiao, Xiong and Wu, Jian and Zhou, Long and
+          Ren, Shuo and Qian, Yanmin and Qian, Yao and Zeng, Michael and
+          Yu, Xiangzhan and Wei, Furu},
+  journal={IEEE Journal of Selected Topics in Signal Processing},
+  volume={16},
+  number={6},
+  pages={1505--1518},
+  year={2022}
+}
+
+% The x-vector head sitting on top of WavLM: TDNN layers, statistics pooling,
+% and the embedding taken from an affine layer above it.
+@inproceedings{snyder2018xvectors,
+  title={X-Vectors: Robust {DNN} Embeddings for Speaker Recognition},
+  author={Snyder, David and Garcia-Romero, Daniel and Sell, Gregory and
+          Povey, Daniel and Khudanpur, Sanjeev},
+  booktitle={IEEE International Conference on Acoustics, Speech and Signal
+             Processing (ICASSP)},
+  pages={5329--5333},
+  year={2018}
+}
+
+% What both embedders were trained on, and the reason the domain caveat in
+% speech_eval/metrics/speaker.py is worth stating: celebrity interview speech,
+% containing no controlled vocal effort at all.
+@inproceedings{nagrani2017voxceleb,
+  title={{VoxCeleb}: A Large-Scale Speaker Identification Dataset},
+  author={Nagrani, Arsha and Chung, Joon Son and Zisserman, Andrew},
+  booktitle={Interspeech},
+  pages={2616--2620},
+  year={2017}
+}
+
+@inproceedings{chung2018voxceleb2,
+  title={{VoxCeleb2}: Deep Speaker Recognition},
+  author={Chung, Joon Son and Nagrani, Arsha and Zisserman, Andrew},
+  booktitle={Interspeech},
+  pages={1086--1090},
+  year={2018}
+}
+
+% ---------------------------------------------------------------------------
+% Not yet implemented -- kept here so the sources are not re-derived
+% ---------------------------------------------------------------------------
+
+% Formant-corrected harmonic magnitudes (H1*, H2*, A1*..A3*).  openSMILE's
+% logRelF0-H1-H2 is UNCORRECTED and is not this quantity.
+@inproceedings{iseli2004improved,
+  title={An improved correction formula for the estimation of harmonic magnitudes
+         and its application to open quotient estimation},
+  author={Iseli, Markus and Alwan, Abeer},
+  booktitle={IEEE International Conference on Acoustics, Speech, and Signal
+             Processing (ICASSP)},
+  pages={669--672},
+  year={2004}
+}
+
+% Correction formula that Iseli & Alwan improve on.
+@phdthesis{hanson1995glottal,
+  title={Glottal characteristics of female speakers},
+  author={Hanson, Helen M.},
+  school={Harvard University},
+  year={1995}
+}
+
+% Cepstral peak prominence, and its smoothed form for continuous speech.
+@article{hillenbrand1994acoustic,
+  title={Acoustic correlates of breathy vocal quality},
+  author={Hillenbrand, James and Cleveland, Ronald A. and Erickson, Robert L.},
+  journal={Journal of Speech and Hearing Research},
+  volume={37},
+  number={4},
+  pages={769--778},
+  year={1994}
+}
+
+@article{hillenbrand1996acoustic,
+  title={Acoustic correlates of breathy vocal quality: dysphonic voices and
+         continuous speech},
+  author={Hillenbrand, James and Houde, Robert A.},
+  journal={Journal of Speech and Hearing Research},
+  volume={39},
+  number={2},
+  pages={311--321},
+  year={1996}
+}

@@ -1,0 +1,135 @@
+# Smoke config: the reference metric over a manifest, on CPU.
+#
+# Copy this per experiment.  Nothing here says which conditions get compared —
+# that is the manifest's job (group_id / condition) and compare.py's.
+
+device: auto
+
+data:
+  manifest: /path/to/AVID/eval_manifest.csv
+  # Paths in the manifest are relative.  Either a per-corpus mapping, which
+  # needs a `corpus` column…
+  dataset_roots:
+    avid: /path/to/AVID/Repository 1
+  # …or a single root for every row:
+  # dataset_root: /path/to/AVID
+  #
+  # Manifest columns carried into metrics.csv so aggregation is a groupby and
+  # never needs a join back to the manifest.  utt_id / group_id / condition are
+  # always carried.
+  # `text` is carried for the ASR metrics below: they do not need a transcript
+  # to *compute*, but compare.py's ground-truth WER mode reads it from the
+  # results table, and only carried columns get there.
+  carry_columns: [corpus, subject_id, sex, effort, tau_src_db, tau_tgt_db, text]
+  # limit: 32          # first N rows, for a smoke run
+
+runner:
+  batch_size: 8
+  num_workers: 4
+  resume: true
+
+metrics:
+  # Absolute level and duration.  Declares no level normalisation, because it
+  # measures the quantity normalisation removes.
+  - type: level
+
+  # eGeMAPS low-level descriptors via openSMILE: spectral tilt (alpha ratio,
+  # Hammarberg index, both spectral slopes) plus F0, jitter, shimmer, HNR, the
+  # harmonic differences and the formant tracks.
+  #
+  # level_norm_dbfs defaults to -27 and should stay on: above full scale
+  # openSMILE's spectral measures are corrupted by many dB without warning, and
+  # the two spectral slopes drift with level even in range.  Absolute level is
+  # already measured by the `level` metric above.
+  - type: egemaps
+    statistics: [mean, std]
+    # contours: ["F0semitoneFrom27.5Hz_sma3nz", "alphaRatio_sma3"]
+    # descriptors: ["alphaRatio_sma3", "hammarbergIndex_sma3"]
+
+  # F0, measured three times.  All three are emitted and none is adjudicated
+  # here: Praat and openSMILE are both periodicity estimators and share their
+  # failure modes — notably octave halving when the fundamental is weak, which is
+  # exactly what high vocal effort does — so they are not two independent votes
+  # against the neural tracker.  Which to believe is settled in compare.py, from
+  # the disagreement rates on real versus converted audio.
+  #
+  # The analysis range is sex-conditional (male 60–400, female 90–600, unknown
+  # 60–600 Hz) and depends only on the `sex` column, never on the audio, so a
+  # speaker is analysed identically in every condition.  That needs `sex` in the
+  # manifest; without it every row falls back to the wide default and says so in
+  # `range_source`.  Contours go to artifacts.npz by default — for F0 the time
+  # course is the point.
+  - type: f0_praat
+  - type: f0_opensmile
+  - type: f0_swiftf0
+
+  # F1–F3, by Praat's Burg LPC analysis.  The `egemaps` block above already emits
+  # openSMILE's own formant descriptors; these are the ones to read, and the
+  # `egemaps.` prefix is what keeps the two apart.  On synthetic vowels with known
+  # formants openSMILE errs by 48% against Praat's 3.6%, and — the reason that
+  # matters here — its error is coupled to the SOURCE TILT: it reads F1 at 336 Hz
+  # with a modal source and 1197 Hz with a flat one, on a fixed vocal tract.
+  # Flattening the source is what vocal effort does, so that tracker would invent
+  # a formant displacement out of a tilt change.  See metrics/formants.py.
+  #
+  # The ceiling is sex-conditional (male 5000, female 5500, unknown 5500 Hz) and
+  # comes from the `sex` column alone, never from the audio, so one speaker is
+  # analysed identically in every condition.  Emitted as `ceiling_hz` /
+  # `ceiling_source`, because a different ceiling is a different number.
+  #
+  # Viterbi tracking is on.  The known-answer probe could not show it helping and
+  # showed it mildly hurting (68 Hz RMSE raw vs 81 Hz tracked), but that probe's
+  # clean five-pole synthesis is exactly the regime where raw Burg barely
+  # mislabels and tracking has nothing to repair.  `tracked` is emitted per row.
+  - type: formants_praat
+    # track: false        # flip if real-speech evidence goes the other way
+    # n_formants: 5.5     # when five poles do not fit a speaker
+
+  # ASR, twice: one autoregressive decoder and one CTC head.  Whisper's decoder
+  # is a language model and will render degraded audio as fluent English, so its
+  # WER understates intelligibility loss; wav2vec2 scores every frame
+  # independently and cannot repair a destroyed phoneme.  The gap between the
+  # two is the measurement — neither number is adjudicated here.
+  #
+  # These declare level_norm_dbfs = -20, not the -27 above, so they get their own
+  # preparation pass.  Whisper's log-mel affine is absolute: a gain of X dB
+  # shifts every input feature by X/40 units, and -27 would land it ~0.35 units
+  # low on a 2-unit scale.  See speech_eval/metrics/asr.py before changing it.
+  #
+  # Both checkpoints must be cached before an offline node runs this:
+  #   uv run --extra cpu --extra asr scripts/download_asr_models.py
+  #
+  # WER itself is computed afterwards by compare.transcription_errors() +
+  # compare.pooled_wer(), against `text` or against another condition.
+  - type: asr_whisper
+    # dtype: float16      # halves memory on a GPU; hold it fixed across a run
+    # batch_size: 4       # inner batch, if the loader's is too large for large-v3
+  - type: asr_wav2vec2
+
+  # Speaker identity, twice: a log-mel TDNN and a self-supervised transformer
+  # with an x-vector head.  They share no frontend, no architecture and no
+  # training set, which is the point — two checkpoints differing only in their
+  # SSL encoder would agree for reasons unrelated to the speech under test.
+  #
+  # Each emits an embedding and no similarity at all.  Cosines, the corpus
+  # calibration that makes them readable, and centroid enrolment are all
+  # compare.py's job — see speech_eval/compare/speaker.py.
+  #
+  # These declare level_norm_dbfs = -20, the same as the ASR metrics above, so
+  # all four share one preparation pass over the corpus instead of two.  WavLM
+  # needs the normalisation (its processor sets do_normalize: false); ECAPA is
+  # analytically level-invariant and gets it anyway, so that a difference
+  # between the two columns is a difference between two models.
+  #
+  # Both checkpoints must be cached before an offline node runs this:
+  #   uv run --extra cpu --extra speaker scripts/download_speaker_models.py \
+  #       --ecapa-savedir ~/.cache/speechbrain/spkrec-ecapa-voxceleb
+  #
+  # `subject_id` must be in carry_columns above, or no identity trial can be
+  # built — the calibration is per speaker.
+  - type: speaker_ecapa
+    # savedir: ~/.cache/speechbrain/spkrec-ecapa-voxceleb   # required offline
+    # min_duration_s: 2.0   # below this, status becomes "short" — and the
+    #                       # embedding is still computed. Filtering is
+    #                       # compare.py's decision, not the metric's.
+  - type: speaker_wavlm
