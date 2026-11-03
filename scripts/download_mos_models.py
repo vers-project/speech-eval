@@ -1,6 +1,6 @@
 """Pre-download the naturalness predictor so an offline compute node can run it.
 
-Jean-Zay's compute nodes have no route to the model hub, so the checkpoint has to
+When the compute nodes have no route to the model hub, the checkpoint has to
 be in the cache before the job starts.  Run this on a login node:
 
     uv run --extra cpu scripts/download_mos_models.py \\

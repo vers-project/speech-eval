@@ -1,6 +1,6 @@
 """Pre-download the speaker embedders so an offline compute node can run them.
 
-Jean-Zay's compute nodes have no route to the model hub, so every checkpoint has
+When the compute nodes have no route to the model hub, every checkpoint has
 to be in the cache before the job starts.  Run this on a login node:
 
     uv run --extra cpu --extra speaker scripts/download_speaker_models.py \\
@@ -76,7 +76,7 @@ def fetch_wavlm(model_id: str, verify: bool) -> None:
 
     print(f"[download] {model_id}")
     processor = AutoFeatureExtractor.from_pretrained(model_id)
-    model = WavLMForXVector.from_pretrained(model_id).eval()
+    model = WavLMForXVector.from_pretrained(model_id).to(torch.float32).eval()
 
     if not processor.return_attention_mask:
         # Not fatal here, but the metric refuses to batch such a checkpoint, so

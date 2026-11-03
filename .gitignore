@@ -7,3 +7,4 @@ outputs/
 
 # Private working files: a separate git repository, never part of this one.
 private/
+build/

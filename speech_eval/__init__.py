@@ -1,6 +1,6 @@
 """Objective speech evaluation: per-utterance metrics, and comparisons over them.
 
-Importing this package registers every built-in metric, so
+Importing this package registers every built-in metric and frame feature, so
 :func:`speech_eval.core.build_metric` can resolve a config's ``type`` without the
 caller remembering to import :mod:`speech_eval.metrics` by hand.  Forgetting that
 import produced ``Unknown metric type 'level'. Available: []`` -- an empty
@@ -12,3 +12,4 @@ and toolkits are loaded in :meth:`speech_eval.core.Metric.load`, so registration
 touches no GPU, no network and none of the optional extras.
 """
 from speech_eval import metrics as _metrics  # noqa: F401
+from speech_eval import frame_features as _frame_features  # noqa: F401

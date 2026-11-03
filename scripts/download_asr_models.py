@@ -1,6 +1,6 @@
 """Pre-download the ASR backends so an offline compute node can run them.
 
-Jean-Zay's compute nodes have no route to the model hub, so every checkpoint has
+When the compute nodes have no route to the model hub, every checkpoint has
 to be in the cache before the job starts.  Run this on a login node:
 
     uv run --extra cpu --extra asr scripts/download_asr_models.py
@@ -40,7 +40,8 @@ def fetch_whisper(model_id: str, verify: bool) -> None:
 
     print(f"[download] {model_id}")
     processor = WhisperProcessor.from_pretrained(model_id)
-    model = WhisperForConditionalGeneration.from_pretrained(model_id)
+    # float32 as in asr_whisper: transformers 5 loads the checkpoint's own float16.
+    model = WhisperForConditionalGeneration.from_pretrained(model_id).to(torch.float32)
 
     tokenizer = WhisperTokenizer.from_pretrained(model_id)
     mapping = getattr(tokenizer, "english_spelling_normalizer", None)
@@ -70,7 +71,7 @@ def fetch_wav2vec2(model_id: str, verify: bool) -> None:
 
     print(f"[download] {model_id}")
     processor = Wav2Vec2Processor.from_pretrained(model_id)
-    model = Wav2Vec2ForCTC.from_pretrained(model_id)
+    model = Wav2Vec2ForCTC.from_pretrained(model_id).to(torch.float32)
 
     if not processor.feature_extractor.return_attention_mask:
         # Not fatal here, but the metric refuses to batch such a checkpoint, so

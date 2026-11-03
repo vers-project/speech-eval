@@ -17,6 +17,8 @@ import torch
 from speech_eval.core import Requirements, Utterance, UtteranceBatch, build_metric
 from speech_eval.metrics.egemaps import EGeMAPSMetric
 
+from synthetic import vowel
+
 opensmile = pytest.importorskip("opensmile", reason="needs the `phonetics` extra")
 
 SAMPLE_RATE = 16_000
@@ -119,6 +121,32 @@ def test_the_two_indices_move_in_opposite_directions(metric):
     hammarberg_change = (features_high["hammarbergIndex_sma3_all_mean"]
                          - features_low["hammarbergIndex_sma3_all_mean"])
     assert alpha_change > 0 and hammarberg_change < 0
+
+
+def test_tilt_columns_follow_the_source_tilt(metric):
+    """Known answer on speech-like signals: flatten the glottal source, fixed vocal tract.
+
+    Shaped noise checks the band definitions; this checks the voiced aggregates a
+    paper actually reports, on vowels whose source tilt is an input.  A flatter
+    source (vocal effort) puts more energy above 1 kHz, so the alpha ratio must
+    rise and the Hammarberg index must fall, monotonically.  The sensitivities
+    are printed (run with ``-s``) for the methods section.
+    """
+    tilts = (16.0, 12.0, 8.0, 4.0)
+    rows = [metric.compute(batch_of(vowel(tilt_db_per_octave=t, duration_s=2.0)))[0]
+            for t in tilts]
+    alpha = np.array([r["alphaRatio_sma3_voiced_mean"] for r in rows])
+    hammarberg = np.array([r["hammarbergIndex_sma3_voiced_mean"] for r in rows])
+
+    assert np.all(np.isfinite(alpha)) and np.all(np.isfinite(hammarberg))
+    assert np.all(np.diff(alpha) > 0), dict(zip(tilts, alpha.round(2)))
+    assert np.all(np.diff(hammarberg) < 0), dict(zip(tilts, hammarberg.round(2)))
+
+    flattening = tilts[0] - tilts[-1]
+    print(f"\nsource tilt {tilts} dB/oct -> alphaRatio {alpha.round(2)} dB "
+          f"({(alpha[-1] - alpha[0]) / flattening:+.2f} dB per dB/oct), "
+          f"Hammarberg {hammarberg.round(2)} dB "
+          f"({(hammarberg[-1] - hammarberg[0]) / flattening:+.2f} dB per dB/oct)")
 
 
 # ---------------------------------------------------------------------------
