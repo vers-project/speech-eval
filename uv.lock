@@ -105,8 +105,8 @@ wheels = [
 
 [[package]]
 name = "audio-utils"
-version = "0.1.0"
-source = { git = "https://github.com/vers-project/audio_utils?tag=v0.1.0#75c80c0fac39aa28226c0405c6f1a91fa5fbe423" }
+version = "0.2.0"
+source = { git = "https://github.com/vers-project/audio_utils?tag=v0.2.0#c9bb57259cd9951dad786239f1a971621be9e5b4" }
 dependencies = [
     { name = "experiment-launcher" },
     { name = "numpy" },
@@ -1588,7 +1588,7 @@ wheels = [
 
 [[package]]
 name = "speech-eval"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "audio-utils" },
@@ -1635,7 +1635,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "audio-utils", git = "https://github.com/vers-project/audio_utils?tag=v0.1.0" },
+    { name = "audio-utils", git = "https://github.com/vers-project/audio_utils?tag=v0.2.0" },
     { name = "experiment-launcher", git = "https://github.com/vers-project/slurm_launcher?tag=v0.1.0" },
     { name = "jiwer", marker = "extra == 'asr'" },
     { name = "matplotlib", marker = "extra == 'cpu'" },

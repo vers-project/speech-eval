@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "speech-eval"
-version = "0.1.0"
+version = "0.2.0"
 license = { text = "MIT" }
 requires-python = "==3.12.*"
 # Deliberately light: the core is a runner over a manifest.  Every model-backed
@@ -93,7 +93,7 @@ torchaudio = [
 # Always pull torchcodec from CPU index regardless of the global choice
 torchcodec = { index = "pytorch-cpu" }
 
-audio-utils = { git = "https://github.com/vers-project/audio_utils", tag = "v0.1.0" }
+audio-utils = { git = "https://github.com/vers-project/audio_utils", tag = "v0.2.0" }
 experiment-launcher = { git = "https://github.com/vers-project/slurm_launcher", tag = "v0.1.0" }
 
 [[tool.uv.index]]
